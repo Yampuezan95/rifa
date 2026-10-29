@@ -56,7 +56,8 @@ p { margin: 0; }
 .num:hover:not(:disabled) { border-color: var(--gold); background: #fff; }
 .num[aria-pressed="true"] { background: var(--gold); border-color: var(--gold-deep); color: var(--ink); }
 .num:disabled { cursor: not-allowed; opacity: .55; }
-.num.sold { background: repeating-linear-gradient(135deg, var(--sold), var(--sold) 5px, transparent 5px, transparent 10px); color: var(--muted); text-decoration: line-through; opacity: .85; }
+.num.sold { background: var(--logo) center / 64% no-repeat, var(--sold); color: transparent; border-color: var(--gold); opacity: 1; }
+.lg-logo { background: var(--logo) center / cover no-repeat; }
 .num.apart { border-style: dashed; border-color: var(--gold-deep); }
 :focus-visible { outline: 3px solid var(--gold-deep); outline-offset: 2px; }
 .buy { gap: 10px; padding: 12px 16px; position: sticky; bottom: 0; z-index: 5; border-top: 2px solid var(--gold); box-shadow: 0 -6px 24px rgba(60, 40, 10, .16); }
@@ -65,7 +66,7 @@ p { margin: 0; }
 .sel b { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; word-break: break-word; }
 .sel .total { font-variant-numeric: tabular-nums; font-weight: 600; }
 label { font-size: .9rem; font-weight: 500; }
-input[type=text], input[type=tel], textarea { width: 100%; font: inherit; padding: 11px 12px; border-radius: 8px; border: 1.5px solid var(--line); background: #fff; color: var(--ink); }
+input[type=text], input[type=tel], textarea, select { width: 100%; font: inherit; padding: 11px 12px; border-radius: 8px; border: 1.5px solid var(--line); background: #fff; color: var(--ink); }
 .field { display: flex; flex-direction: column; gap: 4px; }
 .check { display: flex; gap: 10px; align-items: flex-start; font-size: .85rem; color: var(--muted); font-weight: 400; }
 .check input { margin-top: 3px; width: 18px; height: 18px; flex: none; accent-color: var(--gold-deep); }
@@ -123,11 +124,12 @@ footer { font-size: .8rem; color: var(--muted); text-align: center; }
     <div class="meter">
       <div class="bar" aria-hidden="true"><i id="bar"></i></div>
       <p id="meter-txt"></p>
+      <p class="err" id="hoja-msg"></p>
     </div>
     <div class="legend" aria-hidden="true">
       <span><i style="background:var(--surface)"></i>Libre</span>
       <span><i style="background:var(--accent)"></i>Tu elección</span>
-      <span><i style="background:repeating-linear-gradient(135deg,var(--sold),var(--sold) 3px,transparent 3px,transparent 6px)"></i>Vendido</span>
+      <span><i class="lg-logo"></i>Ocupado</span>
     </div>
     <div class="grid" id="grid" role="group" aria-label="Números de la rifa"></div>
   </section>
@@ -174,15 +176,15 @@ footer { font-size: .8rem; color: var(--muted); text-align: center; }
       <div class="field"><label for="o-nombre">Nombre del comprador</label><input type="text" id="o-nombre" maxlength="40" autocomplete="off"></div>
       <div class="field"><label for="o-tel">WhatsApp</label><input type="tel" id="o-tel" maxlength="15" inputmode="numeric" autocomplete="off"></div>
     </div>
-    <label class="check" for="o-pagado"><input type="checkbox" id="o-pagado" checked><span>Ya pagó</span></label>
+    <div class="field"><label for="o-estado">Estado</label><select id="o-estado"><option value="Debe">Debe</option><option value="Pagó" selected>Pagó</option></select></div>
     <p class="err" id="o-err" role="alert"></p>
     <button class="btn" id="o-add" type="button">Registrar</button>
-    <div class="tablebox"><table id="o-table"><thead><tr><th>Nº</th><th>Nombre</th><th>WhatsApp</th><th>Pago</th><th></th></tr></thead><tbody></tbody></table></div>
+    <div class="tablebox"><table id="o-table"><thead><tr><th>Nº</th><th>Nombre</th><th>WhatsApp</th><th>Estado</th><th></th></tr></thead><tbody></tbody></table></div>
     <div class="field">
       <label for="o-pub">Lista para publicar (números pagados)</label>
       <textarea id="o-pub" rows="2" readonly></textarea>
       <div><button class="btn ghost" id="o-copy" type="button">Copiar lista</button> <span class="hint" id="o-copied"></span></div>
-      <p class="hint">Envíame esta lista en el chat y actualizo la página para que todos vean los números vendidos.</p>
+      <p class="hint">Si usas la hoja de Google, no necesitas esta lista: la página pública lee la hoja sola.</p>
     </div>
   </section>
 
@@ -204,14 +206,16 @@ footer { font-size: .8rem; color: var(--muted); text-align: center; }
     cierre: "2026-12-01T12:00:00-05:00",   // cierra la venta el día del sorteo
     resolucion: "",          // Ej: "Resolución Coljuegos N° 000 de 2026". Si está vacío no se muestra.
     premios: [],             // Ej: [{ puesto: "1er premio", texto: "Versace Eros 100 ml" }]
-    vendidos: []             // Números pagados, ej: [3, 7, 12]
+    hoja: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQlaA0SALpM05jf5q84ugJxjMjF1SJRbgRMUIVKyqUnN9Nk8qFJx4L-IjoSw0m-PQ/pub?gid=1513418890&single=true&output=csv",                // Enlace CSV publicado de la pestaña "Publico" de tu hoja de Google (ver instrucciones)
+    vendidos: []             // Respaldo manual si no usas la hoja, ej: [3, 7, 12]
   };
 
   var cop = new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", maximumFractionDigits: 0 });
   var pad = function (n) { return (n < 10 ? "0" : "") + n; };
   var $ = function (id) { return document.getElementById(id); };
 
-  var sold = new Set(CONFIG.vendidos);       // visible para todos
+  var sold = new Set(CONFIG.vendidos);       // visible para todos (respaldo manual)
+  var fromSheet = new Set();                 // números ocupados leídos de la hoja de Google
   var ownerPaid = new Set();                 // solo el organizador
   var ownerApart = new Set();                // apartados sin pago, solo organizador
   var selected = new Set();
@@ -252,7 +256,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center; }
     paint();
   });
 
-  function isSold(n) { return sold.has(n) || ownerPaid.has(n); }
+  function isSold(n) { return sold.has(n) || fromSheet.has(n) || ownerPaid.has(n) || ownerApart.has(n); }
 
   function paint() {
     var libres = 0, now = Date.now();
@@ -268,11 +272,11 @@ footer { font-size: .8rem; color: var(--muted); text-align: center; }
       b.classList.toggle("sold", s);
       b.setAttribute("aria-pressed", selected.has(n) ? "true" : "false");
       b.classList.toggle("apart", ownerApart.has(n) && !s);
-      b.setAttribute("aria-label", "Número " + pad(n) + (s ? ", vendido" : selected.has(n) ? ", elegido" : ", libre"));
+      b.setAttribute("aria-label", "Número " + pad(n) + (s ? ", no disponible" : selected.has(n) ? ", elegido" : ", libre"));
     });
     var vend = CONFIG.total - libres;
     $("bar").style.width = (vend / CONFIG.total * 100) + "%";
-    $("meter-txt").textContent = libres + " números libres, " + vend + " vendidos de " + CONFIG.total;
+    $("meter-txt").textContent = libres + " números libres, " + vend + " ocupados de " + CONFIG.total;
     updateBuy();
   }
 
@@ -305,8 +309,28 @@ footer { font-size: .8rem; color: var(--muted); text-align: center; }
     }
   });
 
+  var lg = document.querySelector(".logo");
+  if (lg) document.documentElement.style.setProperty("--logo", "url(" + lg.src + ")");
   paint();
   window.addEventListener("hashchange", paint);
+
+  /* ===== Números ocupados: se leen de la hoja de Google publicada ===== */
+  function loadSheet() {
+    if (!CONFIG.hoja) return;
+    fetch(CONFIG.hoja + (CONFIG.hoja.indexOf("?") > -1 ? "&" : "?") + "t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("http"); return r.text(); })
+      .then(function (txt) {
+        var next = new Set();
+        txt.split(/\r?\n/).slice(1).forEach(function (line) {
+          var c = line.split(","), n = parseInt(c[0].replace(/"/g, ""), 10), e = (c[1] || "").replace(/"/g, "").trim();
+          if (!isNaN(n) && n >= 0 && n < CONFIG.total && e) next.add(n);
+        });
+        fromSheet = next; $("hoja-msg").textContent = ""; paint();
+      })
+      .catch(function () { $("hoja-msg").textContent = "No pudimos actualizar los números ocupados. Confirma la disponibilidad por WhatsApp."; });
+  }
+  loadSheet();
+  setInterval(loadSheet, 60000);
 
   /* ===== Panel del organizador (solo dueño de la página) ===== */
   var registros = new Map();
@@ -338,7 +362,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center; }
       try {
         for (var k = 0; k < nums.length; k++) {
           await db.doc("registro/n" + pad(nums[k])).set({
-            num: nums[k], nombre: nombre, whatsapp: tel, pagado: $("o-pagado").checked, creado: new Date().toISOString()
+            num: nums[k], nombre: nombre, whatsapp: tel, pagado: $("o-estado").value === "Pagó", creado: new Date().toISOString()
           });
         }
         $("o-nums").value = ""; $("o-nombre").value = ""; $("o-tel").value = "";
@@ -373,7 +397,7 @@ footer { font-size: .8rem; color: var(--muted); text-align: center; }
       [pad(n), v.nombre || "", v.whatsapp || ""].forEach(function (x) { var td = document.createElement("td"); td.textContent = x; tr.appendChild(td); });
       var tdP = document.createElement("td"), bp = document.createElement("button");
       bp.type = "button"; bp.className = "btn ghost"; bp.dataset.act = "pago"; bp.dataset.n = n;
-      bp.textContent = v.pagado ? "Pagado" : "Marcar pagado"; tdP.appendChild(bp); tr.appendChild(tdP);
+      bp.textContent = v.pagado ? "Pagó (cambiar a Debe)" : "Debe (marcar Pagó)"; tdP.appendChild(bp); tr.appendChild(tdP);
       var tdD = document.createElement("td"), bd = document.createElement("button");
       bd.type = "button"; bd.className = "btn ghost"; bd.dataset.act = "del"; bd.dataset.n = n; bd.textContent = "Quitar";
       tdD.appendChild(bd); tr.appendChild(tdD); tb.appendChild(tr);
